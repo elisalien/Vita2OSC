@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "name": "Resolume",
+  "description": "Preset OSC de reference pour Resolume Arena/Avenue. Tout en float 0..1 (Resolume remappe 0..1 vers la plage du parametre), boutons en trigger envoyant 1.0, port OSC 7000, envoi 30 Hz.",
+  "target": { "ip": "192.168.1.42", "port": 7000 },
+  "globalPrefix": "/vita",
+  "sendRateHz": 30,
+  "controls": [
+    { "id": "btn_cross",    "source": "button.cross",    "enabled": true, "address": "/vita/pad/cross",    "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_circle",   "source": "button.circle",   "enabled": true, "address": "/vita/pad/circle",   "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_square",   "source": "button.square",   "enabled": true, "address": "/vita/pad/square",   "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_triangle", "source": "button.triangle", "enabled": true, "address": "/vita/pad/triangle", "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_up",       "source": "button.up",       "enabled": true, "address": "/vita/pad/up",       "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_down",     "source": "button.down",     "enabled": true, "address": "/vita/pad/down",     "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_left",     "source": "button.left",     "enabled": true, "address": "/vita/pad/left",     "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_right",    "source": "button.right",    "enabled": true, "address": "/vita/pad/right",    "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_l",        "source": "button.l",        "enabled": true, "address": "/vita/pad/l",        "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_r",        "source": "button.r",        "enabled": true, "address": "/vita/pad/r",        "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_start",    "source": "button.start",    "enabled": true, "address": "/vita/pad/start",    "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+    { "id": "btn_select",   "source": "button.select",   "enabled": true, "address": "/vita/pad/select",   "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "trigger" },
+
+    { "id": "stick_l_x", "source": "stick.left.x",  "enabled": true, "address": "/vita/stick/lx", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "mode": "continuous" },
+    { "id": "stick_l_y", "source": "stick.left.y",  "enabled": true, "address": "/vita/stick/ly", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "invert": true,  "mode": "continuous" },
+    { "id": "stick_r_x", "source": "stick.right.x", "enabled": true, "address": "/vita/stick/rx", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "mode": "continuous" },
+    { "id": "stick_r_y", "source": "stick.right.y", "enabled": true, "address": "/vita/stick/ry", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "invert": true,  "mode": "continuous" },
+
+    { "id": "touch_front_0_x", "source": "touch.front.0.x", "enabled": true, "address": "/vita/touch/front/0/x", "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "continuous" },
+    { "id": "touch_front_0_y", "source": "touch.front.0.y", "enabled": true, "address": "/vita/touch/front/0/y", "typeTag": "f", "min": 0.0, "max": 1.0, "invert": true, "mode": "continuous" },
+    { "id": "touch_front_0_z", "source": "touch.front.0.z", "enabled": true, "address": "/vita/touch/front/0/z", "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "continuous" },
+    { "id": "touch_back_0_x",  "source": "touch.back.0.x",  "enabled": true, "address": "/vita/touch/back/0/x",  "typeTag": "f", "min": 0.0, "max": 1.0, "mode": "continuous" },
+    { "id": "touch_back_0_y",  "source": "touch.back.0.y",  "enabled": true, "address": "/vita/touch/back/0/y",  "typeTag": "f", "min": 0.0, "max": 1.0, "invert": true, "mode": "continuous" },
+
+    { "id": "accel_x", "source": "motion.accel.x", "enabled": true, "address": "/vita/accel/x", "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.15, "mode": "continuous" },
+    { "id": "accel_y", "source": "motion.accel.y", "enabled": true, "address": "/vita/accel/y", "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.15, "mode": "continuous" },
+    { "id": "accel_z", "source": "motion.accel.z", "enabled": true, "address": "/vita/accel/z", "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.15, "mode": "continuous" },
+    { "id": "orient_roll",  "source": "motion.orientation.roll",  "enabled": true, "address": "/vita/orient/roll",  "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.2, "mode": "continuous" },
+    { "id": "orient_pitch", "source": "motion.orientation.pitch", "enabled": true, "address": "/vita/orient/pitch", "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.2, "mode": "continuous" },
+    { "id": "orient_yaw",   "source": "motion.orientation.yaw",   "enabled": true, "address": "/vita/orient/yaw",   "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.2, "mode": "continuous" }
+  ]
+}

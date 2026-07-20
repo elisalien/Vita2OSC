@@ -2,7 +2,7 @@
   "version": 1,
   "name": "TouchDesigner",
   "description": "Preset OSC de reference pour TouchDesigner (CHOP OSC In). Floats, sticks -1..1, tactile/capteurs normalises, envoi 60 Hz.",
-  "target": { "ip": "192.168.1.42", "port": 9000 },
+  "target": { "ip": "192.168.1.143", "port": 9000 },
   "globalPrefix": "/vita",
   "sendRateHz": 60,
   "controls": [

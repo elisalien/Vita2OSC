@@ -83,7 +83,8 @@
 <main>
   <div class="row-actions">
     <button class="ghost" onclick="loadPreset('touchdesigner')">Preset TouchDesigner</button>
-    <button class="ghost" onclick="loadPreset('resolume')">Preset Resolume</button>
+    <button class="ghost" onclick="loadPreset('resolume')">Preset Resolume OSC2Vita</button>
+    <button class="ghost" onclick="loadPreset('resolume_generic')">Preset Resolume (/vita)</button>
     <button class="ghost" onclick="exportJson()">Exporter JSON</button>
     <label class="ghost" style="border:1px solid var(--line);border-radius:6px;padding:6px 8px;cursor:pointer">
       Importer JSON <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJson(event)">
@@ -105,19 +106,8 @@ const TABS = [
   {id:"colors",   label:"Colors",    match:_=>false},
   {id:"settings", label:"Reglages",  match:_=>false},
 ];
-let cfg = defaultConfig();
-let activeTab = "buttons";
 
-function baseUrl(){ return `http://${val('vitaIp')}:${val('vitaPort')}`; }
-function val(id){ return document.getElementById(id).value.trim(); }
-function setStatus(msg, cls){ const s=document.getElementById('status'); s.textContent=msg; s.className=cls||''; }
-
-function defaultConfig(){
-  return { version:1, target:{ip:"192.168.1.42",port:9000}, globalPrefix:"/vita",
-           sendRateHz:60, controls:[], colors:defaultColors() };
-}
-
-/* ---------- Colors ---------- */
+/* ---------- Colors (must be declared before cfg init) ---------- */
 const COLOR_EFFECTS = [
   {id:"colorize",    name:"Colorize"},
   {id:"dreamy_glow", name:"Dreamy Glow"},
@@ -145,6 +135,19 @@ function defaultColors(){
   }));
   return { groupCount:3, autoSend:true, effects };
 }
+
+function defaultConfig(){
+  return { version:1, target:{ip:"192.168.1.42",port:9000}, globalPrefix:"/vita",
+           sendRateHz:60, controls:[], colors:defaultColors() };
+}
+
+/* var (not let) so inline onchange handlers in generated HTML can access cfg */
+var cfg = defaultConfig();
+var activeTab = "buttons";
+
+function baseUrl(){ return `http://${val('vitaIp')}:${val('vitaPort')}`; }
+function val(id){ return document.getElementById(id).value.trim(); }
+function setStatus(msg, cls){ const s=document.getElementById('status'); s.textContent=msg; s.className=cls||''; }
 
 function loadColorsFromStorage(){
   try{
@@ -420,7 +423,8 @@ function settingsHtml(){
     <label>Préfixe global</label><input value="${cfg.globalPrefix}" onchange="cfg.globalPrefix=this.value">
     <label>Débit (Hz)</label><input type="number" value="${cfg.sendRateHz}" onchange="cfg.sendRateHz=parseInt(this.value)||60">
   </div>
-  <p class="hint">Le port cible est celui qu'écoute ton logiciel OSC (TouchDesigner 9000, Resolume 7000…).</p>`;
+  <p class="hint">Le port cible est celui qu'écoute ton logiciel OSC (TouchDesigner 9000, Resolume 7000…).
+  <strong>Après « Preset Resolume », vérifie que la Cible IP est bien celle de ton PC</strong> (pas 192.168.1.42).</p>`;
 }
 
 function upd(i,key,v){ cfg.controls[i][key]=v; }
@@ -430,16 +434,23 @@ async function fetchConfig(){
   try{
     setStatus('connexion…');
     const r=await fetch(baseUrl()+'/config',{cache:'no-store'});
-    if(!r.ok) throw new Error(r.status);
+    if(!r.ok) throw new Error(String(r.status));
     const savedColors = cfg.colors;
-    cfg=normalize(await r.json());
-    if(!cfg.colors || !cfg.colors.effects?.length) cfg.colors = savedColors || defaultColors();
+    const data = await r.json();
+    const next = normalize(data);
+    if(!next.colors?.effects?.length) next.colors = savedColors || defaultColors();
+    cfg = next;
     loadColorsFromStorage();
     setStatus('config récupérée','ok'); render();
   }catch(e){ setStatus('échec GET ('+e.message+')','err'); }
 }
 async function sendConfig(){
   try{
+    const ip = cfg.target?.ip || '';
+    if (!ip || ip === '192.168.1.42' || ip === '0.0.0.0') {
+      setStatus('vérifie la Cible IP (onglet Réglages) avant d\'envoyer','err');
+      return;
+    }
     setStatus('envoi…');
     saveColorsToStorage();
     const r=await fetch(baseUrl()+'/config',{method:'POST',
@@ -456,7 +467,8 @@ function normalize(c){
     source:x.source, enabled:x.enabled!==false, address:x.address||'',
     typeTag:x.typeTag||'f', min:num(x.min,0), max:num(x.max,1),
     deadzone:num(x.deadzone,0), smoothing:num(x.smoothing,0),
-    invert:!!x.invert, mode:x.mode||'onChange', bundleGroup:x.bundleGroup||0
+    invert:!!x.invert, absolute:!!x.absolute, zeroOnRelease:!!x.zeroOnRelease,
+    mode:x.mode||'onChange', bundleGroup:x.bundleGroup||0
   }));
   c.colors=normalizeColors(c.colors);
   return c;
@@ -476,44 +488,88 @@ function importJson(ev){
   rd.readAsText(f);
 }
 
+const RESOLUME_BTN_CLIPS = ["cross","circle","square","triangle","up","down","left","right","l","r","start","select"];
+
 function loadPreset(kind){
   const savedColors = cfg.colors;
-  const buttons=["cross","circle","square","triangle","up","down","left","right","l","r","start","select"];
+  const savedTarget = cfg.target || {};
   const td = kind==='touchdesigner';
+  const resolumeOsc2Vita = kind==='resolume';
+  const resolumeGeneric = kind==='resolume_generic';
   const c=defaultConfig();
-  c.target.port = td?9000:7000;
-  c.sendRateHz  = td?60:30;
-  const btnMode = td?'onChange':'trigger';
-  buttons.forEach(b=>c.controls.push(mk(`button.${b}`,`/vita/pad/${b}`,'f',0,1,0,0,false,btnMode,0)));
-  const sMin=td?-1:0, sMax=1;
-  c.controls.push(mk("stick.left.x","/vita/stick/lx",'f',sMin,sMax,0.08,td?0:0.05,false,'continuous',0));
-  c.controls.push(mk("stick.left.y","/vita/stick/ly",'f',sMin,sMax,0.08,td?0:0.05,true,'continuous',0));
-  c.controls.push(mk("stick.right.x","/vita/stick/rx",'f',sMin,sMax,0.08,td?0:0.05,false,'continuous',0));
-  c.controls.push(mk("stick.right.y","/vita/stick/ry",'f',sMin,sMax,0.08,td?0:0.05,true,'continuous',0));
-  const bg=td?1:0;
-  c.controls.push(mk("touch.front.0.x","/vita/touch/front/0/x",'f',0,1,0,0,false,'continuous',bg));
-  c.controls.push(mk("touch.front.0.y","/vita/touch/front/0/y",'f',0,1,0,0,td?false:true,'continuous',bg));
-  c.controls.push(mk("touch.front.0.z","/vita/touch/front/0/z",'f',0,1,0,0,false,'continuous',bg));
-  c.controls.push(mk("touch.back.0.x","/vita/touch/back/0/x",'f',0,1,0,0,false,'continuous',td?3:0));
-  c.controls.push(mk("touch.back.0.y","/vita/touch/back/0/y",'f',0,1,0,0,td?false:true,'continuous',td?3:0));
-  const mMin=td?-2:0;
-  c.controls.push(mk("motion.accel.x","/vita/accel/x",'f',mMin,td?2:1,0,td?0.1:0.15,false,'continuous',0));
-  c.controls.push(mk("motion.accel.y","/vita/accel/y",'f',mMin,td?2:1,0,td?0.1:0.15,false,'continuous',0));
-  c.controls.push(mk("motion.accel.z","/vita/accel/z",'f',mMin,td?2:1,0,td?0.1:0.15,false,'continuous',0));
-  if(td){
-    c.controls.push(mk("motion.gyro.x","/vita/gyro/x",'f',-5,5,0,0.1,false,'continuous',0));
-    c.controls.push(mk("motion.gyro.y","/vita/gyro/y",'f',-5,5,0,0.1,false,'continuous',0));
-    c.controls.push(mk("motion.gyro.z","/vita/gyro/z",'f',-5,5,0,0.1,false,'continuous',0));
+  /* Garder IP + port déjà configurés */
+  if (savedTarget.ip) c.target.ip = savedTarget.ip;
+  if (savedTarget.port) c.target.port = savedTarget.port;
+  else c.target.port = td ? 9000 : 9000;
+  c.sendRateHz = td ? 60 : 30;
+  const btnMode = 'onChange';
+
+  if (resolumeOsc2Vita) {
+    const L_CONSOLE = 2;
+    RESOLUME_BTN_CLIPS.forEach((b,i)=>c.controls.push(
+      mk(`button.${b}`,`/composition/layers/${L_CONSOLE}/clips/${i+1}/connect`,'i',0,1,0,0,false,btnMode,0)
+    ));
+    const stick = (src, layer, axis) => {
+      const dz=0.08, sm=0.05, abs=true;
+      if(axis==='x') {
+        c.controls.push(mk(`stick.${src}.x`,`/composition/layers/${layer}/video/opacity`,'f',0,1,dz,sm,false,'continuous',0,abs));
+        c.controls.push(mk(`stick.${src}.x`,`/composition/layers/${layer}/dashboard/link2`,'f',0,1,dz,sm,false,'continuous',0,abs));
+        c.controls.push(mk(`stick.${src}.y`,`/composition/layers/${layer}/dashboard/link3`,'f',0,1,dz,sm,false,'continuous',0,abs));
+      }
+    };
+    stick('left', 4, 'x');
+    stick('right', 5, 'x');
+    c.controls.push(mk("motion.accel.x","/composition/layers/3/video/opacity",'f',0,1,0,0.15,false,'continuous',0,true));
+    c.controls.push(mk("motion.accel.y","/composition/layers/3/dashboard/link2",'f',0,1,0,0.15,false,'continuous',0,true));
+    c.controls.push(mk("motion.accel.z","/composition/layers/3/dashboard/link3",'f',0,1,0,0.15,false,'continuous',0,true));
+    c.controls.push(mk("motion.accel.x","/composition/layers/3/dashboard/link4",'f',0,1,0,0.15,false,'continuous',0,true));
+    c.controls.push(mk("touch.front.0.x","/composition/dashboard/link1",'f',0,1,0,0,false,'continuous',0,false,true));
+    c.controls.push(mk("touch.front.0.y","/composition/dashboard/link2",'f',0,1,0,0,true,'continuous',0,false,true));
+    c.controls.push(mk("touch.back.0.x","/composition/dashboard/link3",'f',0,1,0,0,false,'continuous',0,false,true));
+    c.controls.push(mk("touch.back.0.y","/composition/dashboard/link4",'f',0,1,0,0,true,'continuous',0,false,true));
+  } else {
+    RESOLUME_BTN_CLIPS.forEach(b=>c.controls.push(
+      mk(`button.${b}`,`/vita/pad/${b}`,'f',0,1,0,0,false,btnMode,0)
+    ));
+    const sMin=td?-1:0, sMax=1;
+    c.controls.push(mk("stick.left.x","/vita/stick/lx",'f',sMin,sMax,0.08,td?0:0.05,false,'continuous',0));
+    c.controls.push(mk("stick.left.y","/vita/stick/ly",'f',sMin,sMax,0.08,td?0:0.05,true,'continuous',0));
+    c.controls.push(mk("stick.right.x","/vita/stick/rx",'f',sMin,sMax,0.08,td?0:0.05,false,'continuous',0));
+    c.controls.push(mk("stick.right.y","/vita/stick/ry",'f',sMin,sMax,0.08,td?0:0.05,true,'continuous',0));
+    const bg=td?1:0;
+    c.controls.push(mk("touch.front.0.x","/vita/touch/front/0/x",'f',0,1,0,0,false,'continuous',bg));
+    c.controls.push(mk("touch.front.0.y","/vita/touch/front/0/y",'f',0,1,0,0,td?false:true,'continuous',bg));
+    c.controls.push(mk("touch.front.0.z","/vita/touch/front/0/z",'f',0,1,0,0,false,'continuous',bg));
+    c.controls.push(mk("touch.back.0.x","/vita/touch/back/0/x",'f',0,1,0,0,false,'continuous',td?3:0));
+    c.controls.push(mk("touch.back.0.y","/vita/touch/back/0/y",'f',0,1,0,0,td?false:true,'continuous',td?3:0));
+    const mMin=td?-2:0;
+    c.controls.push(mk("motion.accel.x","/vita/accel/x",'f',mMin,td?2:1,0,td?0.1:0.15,false,'continuous',0));
+    c.controls.push(mk("motion.accel.y","/vita/accel/y",'f',mMin,td?2:1,0,td?0.1:0.15,false,'continuous',0));
+    c.controls.push(mk("motion.accel.z","/vita/accel/z",'f',mMin,td?2:1,0,td?0.1:0.15,false,'continuous',0));
+    if(td){
+      c.controls.push(mk("motion.gyro.x","/vita/gyro/x",'f',-5,5,0,0.1,false,'continuous',0));
+      c.controls.push(mk("motion.gyro.y","/vita/gyro/y",'f',-5,5,0,0.1,false,'continuous',0));
+      c.controls.push(mk("motion.gyro.z","/vita/gyro/z",'f',-5,5,0,0.1,false,'continuous',0));
+    }
+    if(resolumeGeneric){
+      c.controls.push(mk("motion.orientation.roll", "/vita/orient/roll", 'f',0,1,0,0.2,false,'continuous',0));
+      c.controls.push(mk("motion.orientation.pitch","/vita/orient/pitch",'f',0,1,0,0.2,false,'continuous',0));
+      c.controls.push(mk("motion.orientation.yaw",  "/vita/orient/yaw",  'f',0,1,0,0.2,false,'continuous',0));
+    } else {
+      c.controls.push(mk("motion.orientation.roll", "/vita/orient/roll", 'f',td?-1:0,1,0,td?0.15:0.2,false,'continuous',0));
+      c.controls.push(mk("motion.orientation.pitch","/vita/orient/pitch",'f',td?-1:0,1,0,td?0.15:0.2,false,'continuous',0));
+      c.controls.push(mk("motion.orientation.yaw",  "/vita/orient/yaw",  'f',td?-1:0,1,0,td?0.15:0.2,false,'continuous',0));
+    }
   }
-  c.controls.push(mk("motion.orientation.roll", "/vita/orient/roll", 'f',td?-1:0,1,0,td?0.15:0.2,false,'continuous',0));
-  c.controls.push(mk("motion.orientation.pitch","/vita/orient/pitch",'f',td?-1:0,1,0,td?0.15:0.2,false,'continuous',0));
-  c.controls.push(mk("motion.orientation.yaw",  "/vita/orient/yaw",  'f',td?-1:0,1,0,td?0.15:0.2,false,'continuous',0));
   cfg=c;
   cfg.colors = savedColors || defaultColors();
   render(); setStatus('preset '+kind+' chargé','ok');
 }
-function mk(source,address,typeTag,min,max,deadzone,smoothing,invert,mode,bundleGroup){
-  return {source,enabled:true,address,typeTag,min,max,deadzone,smoothing,invert,mode,bundleGroup};
+function mk(source,address,typeTag,min,max,deadzone,smoothing,invert,mode,bundleGroup,absolute=false,zeroOnRelease=false,enabled=true){
+  const o={source,enabled,address,typeTag,min,max,deadzone,smoothing,invert,mode,bundleGroup};
+  if(absolute) o.absolute=true;
+  if(zeroOnRelease) o.zeroOnRelease=true;
+  return o;
 }
 
 function srcLabel(s){

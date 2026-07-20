@@ -34,6 +34,8 @@ typedef struct {
     float    deadzone;   /* fraction de la plage (sources centrées) */
     float    smoothing;  /* 0 = aucun, ->1 = très lissé */
     int      invert;
+    int      absolute;       /* 1 = |valeur| pour sticks/capteurs bipolaires */
+    int      zero_on_release;/* 1 = envoie out_min quand le doigt se lève (tactile) */
     SendMode mode;
     int      bundle_group; /* 0 = aucun ; >0 = émis groupé avec ce même id */
 

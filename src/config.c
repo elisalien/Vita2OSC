@@ -23,7 +23,7 @@ static void add(Config *cfg, SrcId src, const char *addr, OscType type,
 
 void config_load_default(Config *cfg) {
     memset(cfg, 0, sizeof(*cfg));
-    strncpy(cfg->target_ip, "192.168.1.42", sizeof(cfg->target_ip) - 1);
+    strncpy(cfg->target_ip, "192.168.1.143", sizeof(cfg->target_ip) - 1);
     cfg->target_port = 9000;
     strncpy(cfg->global_prefix, "/vita", sizeof(cfg->global_prefix) - 1);
     cfg->send_rate_hz = 60;

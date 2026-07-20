@@ -3,6 +3,7 @@
 #include "net.h"
 #include "osc.h"
 #include "json.h"
+#include "version.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -16,6 +17,7 @@
 #define OSC_JSON_POOL 64
 
 static Config    *s_cfg = NULL;
+static Config     s_post_cfg;
 static int        s_port = 8080;
 static int        s_listen = -1;
 static int        s_running = 0;
@@ -89,15 +91,14 @@ static void handle_request(int cs, char *req, char *body, int body_len) {
             send_response(cs, "400 Bad Request", "text/plain", "no body", 7);
             return;
         }
-        Config tmp;
-        int rc = config_from_json(&tmp, body); /* body est mutable */
+        int rc = config_from_json(&s_post_cfg, body); /* body est mutable */
         if (rc != 0) {
             send_response(cs, "400 Bad Request", "application/json",
                           "{\"ok\":false}", 12);
             return;
         }
         httpd_lock();
-        *s_cfg = tmp;
+        *s_cfg = s_post_cfg;
         s_dirty = 1;
         httpd_unlock();
         send_response(cs, "200 OK", "application/json", "{\"ok\":true}", 11);
@@ -166,7 +167,7 @@ static void handle_request(int cs, char *req, char *body, int body_len) {
         char tip[16]; strncpy(tip, s_cfg->target_ip, sizeof(tip));
         httpd_unlock();
         int len = snprintf(resp, sizeof(resp),
-            "{\"app\":\"Vita2OSC\",\"version\":\"1.2\",\"ip\":\"%s\","
+            "{\"app\":\"Vita2OSC\",\"version\":\"" VITA2OSC_VERSION "\",\"ip\":\"%s\","
             "\"target\":{\"ip\":\"%s\",\"port\":%u},\"controls\":%d,"
             "\"oscReady\":%s}",
             ip, tip, port, cc, net_target_ready() ? "true" : "false");
@@ -182,6 +183,11 @@ static void serve_client(int cs) {
     static char req[REQ_BUF];
     int total = 0;
     int header_end = -1;
+
+    /* Timeouts : un client lent/mort ne doit pas bloquer le serveur. */
+    int tmo = 3 * 1000 * 1000; /* 3 s (microsecondes) */
+    sceNetSetsockopt(cs, SCE_NET_SOL_SOCKET, SCE_NET_SO_RCVTIMEO, &tmo, sizeof(tmo));
+    sceNetSetsockopt(cs, SCE_NET_SOL_SOCKET, SCE_NET_SO_SNDTIMEO, &tmo, sizeof(tmo));
 
     /* Lire jusqu'à la fin des headers. */
     while (total < REQ_BUF - 1) {
@@ -199,6 +205,12 @@ static void serve_client(int cs) {
     char *cl = strstr(req, "Content-Length:");
     if (!cl) cl = strstr(req, "content-length:");
     if (cl) content_len = atoi(cl + 15);
+
+    /* Corps trop gros pour le buffer -> 413, on ne lit pas la suite. */
+    if (content_len < 0 || content_len > REQ_BUF - header_end - 1) {
+        send_response(cs, "413 Payload Too Large", "text/plain", "too large", 9);
+        return;
+    }
 
     int body_have = total - header_end;
     /* Lire le reste du corps si nécessaire. */
@@ -261,7 +273,7 @@ int httpd_start(Config *shared_cfg, int port) {
 
     s_running = 1;
     s_thread = sceKernelCreateThread("vita2osc_httpd", server_thread,
-                                     0x10000100, 0x10000, 0, 0, NULL);
+                                     0x10000100, 0x20000, 0, 0, NULL);
     if (s_thread < 0) { s_running = 0; return -1; }
     sceKernelStartThread(s_thread, 0, NULL);
     return 0;

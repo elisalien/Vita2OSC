@@ -166,34 +166,35 @@ int config_to_json(const Config *cfg, char *out, int out_size) {
 
 int config_from_json(Config *cfg, char *text) {
     static JsonNode pool[JSON_POOL];
+    static Config   scratch;
     JsonNode *root = json_parse(text, pool, JSON_POOL);
     if (!root || root->type != JSON_OBJ) return -1;
 
     /* Repartir du preset par défaut puis écraser avec le JSON reçu. */
-    Config in;
-    config_load_default(&in);
+    Config *in = &scratch;
+    config_load_default(in);
 
     JsonNode *tgt = json_obj_get(root, "target");
     if (tgt) {
-        const char *ip = json_str(tgt, "ip", in.target_ip);
-        strncpy(in.target_ip, ip, sizeof(in.target_ip) - 1);
-        in.target_port = (uint16_t)json_num(tgt, "port", in.target_port);
+        const char *ip = json_str(tgt, "ip", in->target_ip);
+        strncpy(in->target_ip, ip, sizeof(in->target_ip) - 1);
+        in->target_port = (uint16_t)json_num(tgt, "port", in->target_port);
     }
-    const char *pfx = json_str(root, "globalPrefix", in.global_prefix);
-    strncpy(in.global_prefix, pfx, sizeof(in.global_prefix) - 1);
-    in.send_rate_hz = (int)json_num(root, "sendRateHz", in.send_rate_hz);
-    if (in.send_rate_hz < 1) in.send_rate_hz = 1;
-    if (in.send_rate_hz > 240) in.send_rate_hz = 240;
+    const char *pfx = json_str(root, "globalPrefix", in->global_prefix);
+    strncpy(in->global_prefix, pfx, sizeof(in->global_prefix) - 1);
+    in->send_rate_hz = (int)json_num(root, "sendRateHz", in->send_rate_hz);
+    if (in->send_rate_hz < 1) in->send_rate_hz = 1;
+    if (in->send_rate_hz > 240) in->send_rate_hz = 240;
 
     JsonNode *ctrls = json_obj_get(root, "controls");
     if (ctrls && ctrls->type == JSON_ARR && ctrls->child) {
-        in.control_count = 0;
-        for (JsonNode *e = ctrls->child; e && in.control_count < CFG_MAX_CONTROLS; e = e->next) {
+        in->control_count = 0;
+        for (JsonNode *e = ctrls->child; e && in->control_count < CFG_MAX_CONTROLS; e = e->next) {
             if (e->type != JSON_OBJ) continue;
             SrcId src = input_source_from_name(json_str(e, "source", "none"));
             if (src == SRC_NONE) continue;
 
-            Control *c = &in.controls[in.control_count++];
+            Control *c = &in->controls[in->control_count++];
             memset(c, 0, sizeof(*c));
             c->src = src;
             c->enabled = json_bool(e, "enabled", 1);
@@ -204,14 +205,16 @@ int config_from_json(Config *cfg, char *text) {
             c->deadzone = (float)json_num(e, "deadzone", 0.0);
             c->smoothing = (float)json_num(e, "smoothing", 0.0);
             c->invert = json_bool(e, "invert", 0);
+            c->absolute = json_bool(e, "absolute", 0);
+            c->zero_on_release = json_bool(e, "zeroOnRelease", 0);
             c->mode = parse_mode(json_str(e, "mode", "onChange"));
             c->bundle_group = (int)json_num(e, "bundleGroup", 0);
         }
     }
 
-    parse_colors(&in.colors, root);
+    parse_colors(&in->colors, root);
 
-    if (in.control_count == 0) return -1;
-    *cfg = in;
+    if (in->control_count == 0) return -1;
+    *cfg = *in;
     return 0;
 }

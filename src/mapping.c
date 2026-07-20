@@ -27,6 +27,12 @@ static float compute_norm(Control *c, const InputState *st) {
     float smin, smax;
     input_source_range(c->src, &smin, &smax);
 
+    if (c->absolute && smin < 0.0f) {
+        raw = fabsf(raw);
+        smin = 0.0f;
+        smax = 1.0f;
+    }
+
     /* Deadzone : sur les sources centrées (min < 0), autour de 0. */
     if (c->deadzone > 0.0f && smin < 0.0f) {
         float thresh = c->deadzone * smax; /* smax = amplitude positive */
@@ -64,10 +70,24 @@ static void write_control_message(OscWriter *w, const Control *c, float out) {
     else                         osc_push_float(w, out);
 }
 
+/* Envoie out_min une fois au relâchement tactile (évite paramètre « collé »). */
+static int emit_touch_release_zero(Control *c, float *out_value) {
+    if (!c->zero_on_release || !is_touch_src(c->src) || !c->has_last)
+        return 0;
+    *out_value = c->out_min;
+    c->has_last = 0;
+    c->smoothed = 0.0f;
+    c->last_norm = 0.0f;
+    return 1;
+}
+
 /* Détermine si un contrôle non groupé doit émettre à ce tick, et sa valeur. */
 static int should_emit(Control *c, const InputState *st, float *out_value) {
-    /* Point tactile levé : ne pas émettre (évite les valeurs collées). */
-    if (!input_source_touch_active(st, c->src)) { c->has_last = 0; return 0; }
+    if (!input_source_touch_active(st, c->src)) {
+        if (emit_touch_release_zero(c, out_value)) return 1;
+        c->has_last = 0;
+        return 0;
+    }
 
     float norm = compute_norm(c, st);
 
@@ -147,9 +167,40 @@ int mapping_tick(Config *cfg, const InputState *st) {
             }
         }
         if (!any) continue;
-        if (!active) { /* doigt levé : reset lissage, pas d'envoi */
+        if (!active) {
+            int release = 0;
+            for (int i = 0; i < cfg->control_count; i++) {
+                Control *c = &cfg->controls[i];
+                if (c->enabled && c->bundle_group == g && c->zero_on_release &&
+                    is_touch_src(c->src) && c->has_last) {
+                    release = 1;
+                    break;
+                }
+            }
+            if (release) {
+                OscWriter w;
+                osc_begin(&w);
+                osc_bundle_begin(&w);
+                int members = 0;
+                for (int i = 0; i < cfg->control_count; i++) {
+                    Control *c = &cfg->controls[i];
+                    if (!c->enabled || c->bundle_group != g || !c->zero_on_release ||
+                        !is_touch_src(c->src))
+                        continue;
+                    osc_bundle_element_begin(&w);
+                    write_control_message(&w, c, c->out_min);
+                    osc_bundle_element_end(&w);
+                    members++;
+                }
+                if (members > 0 && !w.overflow &&
+                    net_send(osc_data(&w), osc_size(&w)) >= 0)
+                    sent++;
+            }
             for (int i = 0; i < cfg->control_count; i++)
-                if (cfg->controls[i].bundle_group == g) cfg->controls[i].has_last = 0;
+                if (cfg->controls[i].bundle_group == g) {
+                    cfg->controls[i].has_last = 0;
+                    cfg->controls[i].smoothed = 0.0f;
+                }
             continue;
         }
 

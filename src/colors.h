@@ -1,5 +1,6 @@
 /*
- * colors.h — Onglet Colors : effets Colorize / Dreamy Glow, pickers HSB, groupes.
+ * colors.h — Page Couleurs : effets Colorize / Dreamy Glow, pickers HSBA,
+ * toggles de groupes. Tout au tactile.
  */
 #ifndef VITA2OSC_COLORS_H
 #define VITA2OSC_COLORS_H
@@ -40,11 +41,16 @@ typedef struct {
 
 void colors_load_default(ColorConfig *cc);
 
-/* Dessine l'onglet Colors (coordonnées écran 960×544). */
-void colors_draw(const ColorConfig *cc, struct vita2d_pgf *font);
+/* Dessine la page Couleurs dans le rectangle de contenu donné. */
+void colors_draw(const ColorConfig *cc, struct vita2d_pgf *font,
+                 int x, int y, int w, int h);
 
-/* Traite le tactile écran (px/py). Retourne 1 si l'événement est consommé. */
-int colors_handle_touch(ColorConfig *cc, int px, int py, int active);
+/* Tap (front montant) : onglets d'effet, toggles de groupe, boutons.
+ * Retourne 1 si consommé. */
+int colors_touch_press(ColorConfig *cc, int px, int py);
+
+/* Glissement (doigt maintenu) : barres H/S/B/A. Retourne 1 si consommé. */
+int colors_touch_drag(ColorConfig *cc, int px, int py);
 
 /* Envoie les paramètres couleur + toggles groupes pour un effet. */
 int colors_send_effect(const ColorEffect *fx, int include_toggles);
@@ -52,4 +58,4 @@ int colors_send_effect(const ColorEffect *fx, int include_toggles);
 /* Envoie tous les effets (groupes inclus). */
 int colors_send_all(const ColorConfig *cc);
 
-#endif /* VITA2OSC_COLORS_H */
+#endif /* VITA2OSC_COLORS_H  */

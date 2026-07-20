@@ -26,6 +26,8 @@ static float clampf(float v, float lo, float hi) {
     return v < lo ? lo : (v > hi ? hi : v);
 }
 
+static int s_motion_ok = 0;
+
 int input_init(void) {
     sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE); /* active les 2 sticks */
 
@@ -43,12 +45,12 @@ int input_init(void) {
         s_back_max_y = (float)pinfo.maxAaY;
     }
 
-    sceMotionStartSampling();
+    s_motion_ok = (sceMotionStartSampling() >= 0);
     return 0;
 }
 
 void input_finish(void) {
-    sceMotionStopSampling();
+    if (s_motion_ok) sceMotionStopSampling();
     sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_STOP);
     sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK,  SCE_TOUCH_SAMPLING_STATE_STOP);
 }
@@ -136,7 +138,7 @@ void input_poll(InputState *st) {
     /* --- Mouvement --- */
     SceMotionSensorState ms;
     memset(&ms, 0, sizeof(ms));
-    if (sceMotionGetSensorState(&ms, 1) >= 0) {
+    if (s_motion_ok && sceMotionGetSensorState(&ms, 1) >= 0) {
         st->accel_x = ms.accelerometer.x;
         st->accel_y = ms.accelerometer.y;
         st->accel_z = ms.accelerometer.z;
@@ -147,7 +149,7 @@ void input_poll(InputState *st) {
 
     SceMotionState mst;
     memset(&mst, 0, sizeof(mst));
-    if (sceMotionGetState(&mst) >= 0) {
+    if (s_motion_ok && sceMotionGetState(&mst) >= 0) {
         quat_to_euler_norm(mst.deviceQuat.x, mst.deviceQuat.y,
                            mst.deviceQuat.z, mst.deviceQuat.w,
                            &st->roll, &st->pitch, &st->yaw);

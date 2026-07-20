@@ -6,7 +6,7 @@
 #include <psp2/sysmodule.h>
 
 /* Pool mémoire requis par sceNetInit (1 Mo suffit largement). */
-#define NET_POOL_SIZE (1 * 1024 * 1024)
+#define NET_POOL_SIZE (256 * 1024)
 static char        s_net_pool[NET_POOL_SIZE];
 static int         s_net_ready = 0;
 

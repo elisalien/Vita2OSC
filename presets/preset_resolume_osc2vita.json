@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "name": "Resolume OSC2Vita",
+  "description": "OSC2Vita : L2 Console (Piano, adresses fixes), L3 Accel, L4 Oscillo G, L5 Oscillo D, composition Displace (tactile). Ne jamais déplacer L2.",
+  "target": { "ip": "192.168.1.42", "port": 9000 },
+  "globalPrefix": "",
+  "sendRateHz": 30,
+  "controls": [
+    { "id": "btn_cross",    "source": "button.cross",    "enabled": true, "address": "/composition/layers/2/clips/1/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_circle",   "source": "button.circle",   "enabled": true, "address": "/composition/layers/2/clips/2/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_square",   "source": "button.square",   "enabled": true, "address": "/composition/layers/2/clips/3/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_triangle", "source": "button.triangle", "enabled": true, "address": "/composition/layers/2/clips/4/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_up",       "source": "button.up",       "enabled": true, "address": "/composition/layers/2/clips/5/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_down",     "source": "button.down",     "enabled": true, "address": "/composition/layers/2/clips/6/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_left",     "source": "button.left",     "enabled": true, "address": "/composition/layers/2/clips/7/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_right",    "source": "button.right",    "enabled": true, "address": "/composition/layers/2/clips/8/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_l",        "source": "button.l",        "enabled": true, "address": "/composition/layers/2/clips/9/connect",  "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_r",        "source": "button.r",        "enabled": true, "address": "/composition/layers/2/clips/10/connect", "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_start",    "source": "button.start",    "enabled": true, "address": "/composition/layers/2/clips/11/connect", "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+    { "id": "btn_select",   "source": "button.select",   "enabled": true, "address": "/composition/layers/2/clips/12/connect", "typeTag": "i", "min": 0.0, "max": 1.0, "mode": "onChange" },
+
+    { "id": "stick_l_opacity",  "source": "stick.left.x",  "enabled": true, "address": "/composition/layers/4/video/opacity", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "absolute": true, "mode": "continuous" },
+    { "id": "stick_l_amp",      "source": "stick.left.x",  "enabled": true, "address": "/composition/layers/4/dashboard/link2", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "absolute": true, "mode": "continuous" },
+    { "id": "stick_l_density",  "source": "stick.left.y",  "enabled": true, "address": "/composition/layers/4/dashboard/link3", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "absolute": true, "mode": "continuous" },
+
+    { "id": "stick_r_opacity",  "source": "stick.right.x", "enabled": true, "address": "/composition/layers/5/video/opacity", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "absolute": true, "mode": "continuous" },
+    { "id": "stick_r_amp",      "source": "stick.right.x", "enabled": true, "address": "/composition/layers/5/dashboard/link2", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "absolute": true, "mode": "continuous" },
+    { "id": "stick_r_density",  "source": "stick.right.y", "enabled": true, "address": "/composition/layers/5/dashboard/link3", "typeTag": "f", "min": 0.0, "max": 1.0, "deadzone": 0.08, "smoothing": 0.05, "absolute": true, "mode": "continuous" },
+
+    { "id": "accel_opacity",  "source": "motion.accel.x", "enabled": true, "address": "/composition/layers/3/video/opacity", "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.15, "absolute": true, "mode": "continuous" },
+    { "id": "accel_amp",      "source": "motion.accel.y", "enabled": true, "address": "/composition/layers/3/dashboard/link2", "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.15, "absolute": true, "mode": "continuous" },
+    { "id": "accel_density",  "source": "motion.accel.z", "enabled": true, "address": "/composition/layers/3/dashboard/link3", "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.15, "absolute": true, "mode": "continuous" },
+    { "id": "accel_octaves",  "source": "motion.accel.x", "enabled": true, "address": "/composition/layers/3/dashboard/link4", "typeTag": "f", "min": 0.0, "max": 1.0, "smoothing": 0.15, "absolute": true, "mode": "continuous" },
+
+    { "id": "touch_front_0_x", "source": "touch.front.0.x", "enabled": true, "address": "/composition/dashboard/link1", "typeTag": "f", "min": 0.0, "max": 1.0, "zeroOnRelease": true, "mode": "continuous" },
+    { "id": "touch_front_0_y", "source": "touch.front.0.y", "enabled": true, "address": "/composition/dashboard/link2", "typeTag": "f", "min": 0.0, "max": 1.0, "invert": true, "zeroOnRelease": true, "mode": "continuous" },
+    { "id": "touch_back_0_x",  "source": "touch.back.0.x",  "enabled": true, "address": "/composition/dashboard/link3", "typeTag": "f", "min": 0.0, "max": 1.0, "zeroOnRelease": true, "mode": "continuous" },
+    { "id": "touch_back_0_y",  "source": "touch.back.0.y",  "enabled": true, "address": "/composition/dashboard/link4", "typeTag": "f", "min": 0.0, "max": 1.0, "invert": true, "zeroOnRelease": true, "mode": "continuous" }
+  ]
+}
